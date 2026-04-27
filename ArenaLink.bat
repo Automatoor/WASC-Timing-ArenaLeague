@@ -1,5 +1,5 @@
 @echo off
-title ArenaLink v1.0.1
+title ArenaLink v1.0.2
 
 :: ── Setup venv if not present ─────────────────────────────────────────────────
 if not exist "%~dp0venv\Scripts\activate.bat" (

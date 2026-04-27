@@ -1,5 +1,5 @@
 """
-ArenaLink v0.4
+ArenaLink v1.0.2
 Winsford Swim Team — Arena League timing data capture
 """
 import tkinter as tk
@@ -18,7 +18,7 @@ import pyperclip
 from watchdog.observers.polling import PollingObserver
 from watchdog.events import FileSystemEventHandler
 
-VERSION = "v1.0.1"
+VERSION = "v1.0.2"
 APP_NAME = "ArenaLink"
 
 # ── Paths ──────────────────────────────────────────────────────────────────────
@@ -831,7 +831,7 @@ class ArenaLinkApp(tk.Tk):
         scrollbar.pack(side="right", fill="y")
 
         def select_entry(entry):
-            win.destroy()
+            on_review_win_close()   # restores alpha, WM_DELETE_WINDOW protocol, clears ref
             self._load_previous_file(entry)
 
         for entry in entries:
