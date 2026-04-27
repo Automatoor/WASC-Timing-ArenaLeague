@@ -20,3 +20,4 @@ arena_xlsx/*.xlsx
 arena_xlsx/*.xlsm
 
 # Test Files
+test_files/
