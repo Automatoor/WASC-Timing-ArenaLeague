@@ -18,7 +18,7 @@ import pyperclip
 from watchdog.observers.polling import PollingObserver
 from watchdog.events import FileSystemEventHandler
 
-VERSION = "v1.0"
+VERSION = "v1.0.1"
 APP_NAME = "ArenaLink"
 
 # ── Paths ──────────────────────────────────────────────────────────────────────
@@ -317,7 +317,21 @@ def fill_spreadsheet(excel_path, event_num, times):
     """
     import xlwings as xw
     book  = find_or_open_excel(excel_path)
-    sheet = book.sheets[SHEET_NAME]
+    # Retry sheet access — Excel may need a moment after opening
+    sheet = None
+    for attempt in range(3):
+        try:
+            sheet = book.sheets[SHEET_NAME]
+            break
+        except Exception:
+            if attempt < 2:
+                import time as _time
+                _time.sleep(1)
+    if sheet is None:
+        raise ValueError(
+            f"Sheet '{SHEET_NAME}' not found in the spreadsheet. "
+            f"Check the tab is named exactly '{SHEET_NAME}' (case-sensitive)."
+        )
 
     search_str = f"EVENT {event_num}"
     # Read a range of col B and C values into memory for fast scanning
@@ -1536,10 +1550,13 @@ class ArenaLinkApp(tk.Tk):
         self._on_copied()  # also enable Entry Done
 
     def _on_fill_error(self, msg):
+        # COM errors can return None or unhelpful strings — use a fallback
+        display = msg if msg and msg.strip() and msg != "None" else \
+            "Could not access spreadsheet. Is it open and not read-only?"
         self.fill_btn.config(state="normal", bg="#5c1a00",
                              text="📊  FILL FAILED — RETRY",
                              font=(MONO, 10, "bold"))
-        self.set_status(f"❌ Spreadsheet fill failed: {msg}")
+        self.set_status(f"❌ Spreadsheet fill failed: {display}")
         beep("error")
 
     def _on_copied(self):

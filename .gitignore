@@ -18,3 +18,5 @@ Thumbs.db
 # Excel spreadsheet (local only — place your .xlsx here)
 arena_xlsx/*.xlsx
 arena_xlsx/*.xlsm
+
+# Test Files

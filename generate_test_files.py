@@ -121,47 +121,55 @@ def generate_race(event_num, heat_num, race_num, event_type):
 
 def generate_html(event_num, heat_num, race_num, desc, gender,
                   raw_times, places, dns_lane, backup_lane):
-    """Generate HTML content for one race."""
-    # Finish order string (lanes sorted by place)
+    """Generate HTML content matching the real timing system output format."""
     active = [(l, p) for l, p in places.items()]
     finish_order = " ".join(str(l) for l, _ in sorted(active, key=lambda x: x[1]))
 
-    # Build lane rows for "Finish By Lane" table
-    lane_rows = ""
-    for lane in range(1, 7):  # HTML shows 6 lanes
+    # Build lane rows matching original structure exactly:
+    # First lane: <td>...</td></tr>
+    # Subsequent lanes: <td>...</td></tr>  (joined by </tr><td opening next row implicitly)
+    rows = []
+    for lane in range(1, 7):
         if lane > 4:
-            lane_rows += f"<td> {lane} </td><td></td><td></td><td></td><td></td><td></td>"
-            continue
-        if lane == dns_lane:
-            lane_rows += f"<td> {lane} </td><td></td><td></td><td></td><td></td><td>Expecting 1 Buttons</td>"
-            continue
-        t    = raw_times[lane]
-        disp = format_time_display(t)
-        p    = places[lane]
-        is_bk = lane == backup_lane
-        star = "*" if is_bk else " "
-        # backup time slightly different if backup lane
-        bk_t  = round(t + random.uniform(0.1, 2.0), 2) if is_bk else t
-        bk_d  = format_time_display(bk_t)
-        bk_note = f"Backup Diff :{abs(t - bk_t):.2f}" if is_bk else ""
-        lane_rows += (f"<td> {lane}{star}</td><td> {p}</td>"
-                      f"<td>{disp}</td><td>{bk_d}</td><td>{bk_d}</td>"
-                      f"<td>{bk_note}</td>")
+            row = f"<td> {lane} </td><td></td><td></td><td></td><td></td><td></td>"
+        elif lane == dns_lane:
+            row = f"<td> {lane} </td><td></td><td></td><td></td><td></td><td>Expecting 1 Buttons</td>"
+        else:
+            t     = raw_times[lane]
+            disp  = format_time_display(t)
+            p     = places[lane]
+            is_bk = lane == backup_lane
+            star  = "*" if is_bk else " "
+            bk_t  = round(t + random.uniform(0.1, 2.0), 2) if is_bk else t
+            bk_d  = format_time_display(bk_t)
+            bk_note = f"Backup Diff :{abs(t - bk_t):.2f}" if is_bk else ""
+            row = (f"<td> {lane}{star}</td><td> {p}</td>"
+                   f"<td>{disp}</td><td>{bk_d}</td><td>{bk_d}</td>"
+                   f"<td>{bk_note}</td>")
+        rows.append(row)
+    # Join exactly as original: first row inline, rest separated by </tr><td prefix already in row
+    lane_rows = rows[0] + "".join(f"</tr><td> {r[4:]}" if r.startswith("<td> ") else f"</tr>{r}" for r in rows[1:])
 
-    html = f"""<html><head><title>Superior Swim Timing</title>
-<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-</head><body bgcolor="white">
-<h1> Event {event_num}   Heat  {heat_num}   Race {race_num}</h1>
-<p>Event Start Saturday, April 11, 2026 12:47:22 PM BST<p>
-<p>Heat Start Saturday, April 11, 2026 1:28:53 PM BST</p>
-<h2>{gender} {desc}</h2>
-<h2>Finish Order: {finish_order}</h2>
-<h3>Finish By Lane</h3>
-<table border='1'><tr>
-<th>LANE</th><th>PLACE</th><th>TIME</th><th>BACKUP</th><th>BUTTON1</th></tr><tr>
-{lane_rows}</table>
-</body></html>
-"""
+    # Format race number zero-padded to 3 digits matching original
+    race_str_h1 = f"{race_num:03d}"
+    event_str_h1 = f"{event_num:3d}"
+    heat_str_h1  = f"{heat_num:2d}"
+
+    html = (
+        f"<html><head><title>Superior Swim Timing</title>"
+        f"<meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\"></head>"
+        f"<body bgcolor=\"white\">"
+        f"<h1> Event {event_str_h1}   Heat {heat_str_h1}   Race {race_str_h1}</h1>\n"
+        f"<p>Event Start Saturday, April 11, 2026 12:47:22 PM BST<p>\n"
+        f"<p>Heat Start Saturday, April 11, 2026 1:28:53 PM BST</p>\n"
+        f"<h2>{gender} {desc}</h2>\n"
+        f"<h2>Finish Order: {finish_order}</h2>\n"
+        f"<h3>Finish By Lane</h3>"
+        f"<table border='1'><tr>\n"
+        f"<th>LANE</th><th>PLACE</th><th>TIME</th><th>BACKUP</th><th>BUTTON1</th></tr><tr>\n"
+        f"{lane_rows}</table>"
+        f"</body></html>\n"
+    )
     return html
 
 # ── Main generator ──────────────────────────────────────────────────────────────
