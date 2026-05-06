@@ -21,8 +21,16 @@ ArenaLink watches a network share for timing system output files, parses race re
 
 ### Requirements
 - Windows 10/11
-- Python 3.10+ installed and on PATH
+- Python 3.10+ installed and on PATH — download from [python.org](https://www.python.org/downloads/)
 - The Arena League Excel spreadsheet placed in `arena_xlsx/`
+
+> **Important — Python installation options:**
+> During the Python installer, ensure the following are ticked:
+> - **Add Python to PATH**
+> - **tcl/tk and IDLE** — required for the ArenaLink graphical interface
+>
+> If ArenaLink fails with a `tkinter` error, re-run the Python installer, click **Modify**,
+> and tick **tcl/tk and IDLE** under Optional Features. See Troubleshooting below for full steps.
 
 ### First Run
 1. Double-click `ArenaLink.bat`
@@ -143,6 +151,13 @@ The spreadsheet must be open and not in read-only mode when Fill Spreadsheet is 
 
 **Times look wrong** — check `logs/app.log` for parse errors.
 
+**ArenaLink won't start — `tkinter` or `_tkinter` error** — tkinter was not installed with Python. To fix:
+1. Open Windows **Control Panel → Apps**, find your Python installation and click **Modify**
+2. On the Optional Features screen, tick **tcl/tk and IDLE**
+3. Complete the installation, then re-run `ArenaLink.bat`
+
+Alternatively, re-run the Python installer from [python.org](https://www.python.org/downloads/) and tick **tcl/tk and IDLE** during setup.
+
 ---
 
 ## Dependencies
@@ -159,6 +174,10 @@ xlwings==0.33.14       Excel automation
 ---
 
 ## Changelog
+
+### v1.0.3
+- Fixed: scroll wheel now works in the "Review a Previous File" list
+- Added: Python and tkinter checks in ArenaLink.bat with clear fix instructions if missing
 
 ### v1.0 — Production Release
 - Improved error message when Excel Recording sheet is renamed

@@ -1,5 +1,5 @@
 """
-ArenaLink v1.0.2
+ArenaLink v1.0.3
 Winsford Swim Team — Arena League timing data capture
 """
 import tkinter as tk
@@ -18,7 +18,7 @@ import pyperclip
 from watchdog.observers.polling import PollingObserver
 from watchdog.events import FileSystemEventHandler
 
-VERSION = "v1.0.2"
+VERSION = "v1.0.3"
 APP_NAME = "ArenaLink"
 
 # ── Paths ──────────────────────────────────────────────────────────────────────
@@ -830,6 +830,11 @@ class ArenaLinkApp(tk.Tk):
         canvas.pack(side="left", fill="both", expand=True)
         scrollbar.pack(side="right", fill="y")
 
+        def _on_mousewheel(event):
+            canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
+        canvas.bind("<MouseWheel>", _on_mousewheel)
+        scroll_frame.bind("<MouseWheel>", _on_mousewheel)
+
         def select_entry(entry):
             on_review_win_close()   # restores alpha, WM_DELETE_WINDOW protocol, clears ref
             self._load_previous_file(entry)
@@ -851,8 +856,10 @@ class ArenaLinkApp(tk.Tk):
                      ).pack(side="right", padx=4, pady=8)
 
             row.bind("<Button-1>", lambda e, en=entry: select_entry(en))
+            row.bind("<MouseWheel>", _on_mousewheel)
             for child in row.winfo_children():
                 child.bind("<Button-1>", lambda e, en=entry: select_entry(en))
+                child.bind("<MouseWheel>", _on_mousewheel)
             row.bind("<Enter>", lambda e, r=row: r.configure(bg="#2a2a3a"))
             row.bind("<Leave>", lambda e, r=row: r.configure(bg=BG_PANEL))
 
