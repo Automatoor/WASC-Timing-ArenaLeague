@@ -1,4 +1,4 @@
-# ArenaLink v1.0
+# ArenaLink v1.0.5
 
 **Winsford Swim Team — Arena League Timing Data Capture**
 
