@@ -175,6 +175,12 @@ xlwings==0.33.14       Excel automation
 
 ## Changelog
 
+### v1.0.5
+- Fixed: Process Unprocessed Files now applies the same A/B team filter as the live watcher — B Teams no longer sees A Team files and vice versa
+
+### v1.0.4
+- Fixed: lane times now parsed from HTML instead of .gen file — resolves empty lane false positives on 100m and other races where no backup button was pressed
+
 ### v1.0.3
 - Fixed: scroll wheel now works in the "Review a Previous File" list
 - Added: Python and tkinter checks in ArenaLink.bat with clear fix instructions if missing

@@ -1,5 +1,5 @@
 """
-ArenaLink v1.0.3
+ArenaLink v1.0.5
 Winsford Swim Team — Arena League timing data capture
 """
 import tkinter as tk
@@ -18,7 +18,7 @@ import pyperclip
 from watchdog.observers.polling import PollingObserver
 from watchdog.events import FileSystemEventHandler
 
-VERSION = "v1.0.3"
+VERSION = "v1.0.5"
 APP_NAME = "ArenaLink"
 
 # ── Paths ──────────────────────────────────────────────────────────────────────
@@ -190,33 +190,64 @@ def calculate_places(times):
         places[idx] = f"({ordinal(pos + 1)})"
     return places
 
-def parse_gen(gen_path):
-    """Parse .gen returning list of 4 time strings for lanes 1-4.
+def html_time_to_formatted(time_str):
+    """Convert HTML time string 'MM:SS.HH' or 'SS.HH' to MMSSHH 6-char string.
+    e.g. '01:00.00' → '010000', '00:55.00' → '005500', '55.00' → '005500'
+    Returns '' for empty/invalid."""
+    try:
+        time_str = time_str.strip()
+        if not time_str:
+            return ""
+        if ":" in time_str:
+            parts = time_str.split(":")
+            mins = int(parts[0])
+            sec_parts = parts[1].split(".")
+            secs = int(sec_parts[0])
+            hundredths = int(sec_parts[1]) if len(sec_parts) > 1 else 0
+        else:
+            mins = 0
+            sec_parts = time_str.split(".")
+            secs = int(sec_parts[0])
+            hundredths = int(sec_parts[1]) if len(sec_parts) > 1 else 0
+        if mins == 0 and secs == 0:
+            return ""
+        return f"{mins:02d}{secs:02d}{hundredths:02d}"
+    except Exception:
+        return ""
 
-    Row POSITION (1-indexed) = lane number.
-    Col 0 = finish place in full field (ignored — we recalculate from displayed lanes).
-    Finish time = second-to-last populated numeric value from col 1 onwards.
-    Works for all race distances (50m, 100m, 200m etc).
+def parse_html_lanes(html_path):
+    """Parse lane times from the 'Finish By Lane' table in the HTML file.
+    Returns list of 4 time strings in MMSSHH format for lanes 1-4.
+    Empty string for lanes with no time.
+
+    The timing system HTML is malformed — all lane rows are <td> siblings
+    within a single <tr> rather than separate <tr> elements. We iterate over
+    all <td> elements in the first table in groups of 6 (lane, place, time,
+    backup, button1, note) skipping the header <th> row.
     """
-    times = []
-    with open(gen_path) as f:
-        lines = f.readlines()
-    for line in lines[1:5]:
-        parts = line.strip().split(";")
-        if not parts or parts[0] == "0":
-            times.append("")
-            continue
-        vals = []
-        for p in parts[1:]:
-            p = p.strip()
-            if p:
-                try:
-                    float(p)
-                    vals.append(p)
-                except ValueError:
-                    pass
-        finish = vals[-2] if len(vals) >= 2 else (vals[0] if vals else "")
-        times.append(decimal_seconds_to_formatted(finish))
+    times = ["", "", "", ""]
+    try:
+        with open(html_path, encoding="utf-8") as f:
+            soup = BeautifulSoup(f, "html.parser")
+        tables = soup.find_all("table")
+        if not tables:
+            return times
+        tds = tables[0].find_all("td")
+        # Each lane block is 6 td elements: lane, place, time, backup, button1, note
+        for i in range(0, len(tds), 6):
+            block = tds[i:i+6]
+            if len(block) < 3:
+                continue
+            lane_text = block[0].get_text(strip=True).replace("*", "").strip()
+            time_text = block[2].get_text(strip=True)
+            try:
+                lane_num = int(lane_text)
+            except ValueError:
+                continue
+            if 1 <= lane_num <= 4:
+                times[lane_num - 1] = html_time_to_formatted(time_text)
+    except Exception as e:
+        logging.error(f"parse_html_lanes error: {e}")
     return times
 
 def parse_gen_filename(gen_path):
@@ -1207,6 +1238,18 @@ class ArenaLinkApp(tk.Tk):
         folder = self.config_data.get("watch_folder", "")
         self.processed = load_processed()
         files  = find_unprocessed_gen_files(folder, self.processed)
+        # Apply same team/heat filter as the live watcher
+        team = self.config_data.get("team", "")
+        if team in ("A", "B"):
+            expected = 1 if team == "A" else 2
+            filtered = []
+            for f in files:
+                m = re.match(r'^\d+-\d+-(\d+)F\d+\.gen$', f.name)
+                if m and int(m.group(1)) == expected:
+                    filtered.append(f)
+                elif not m:
+                    filtered.append(f)  # can't determine heat — include it
+            files = filtered
         if not files:
             messagebox.showinfo("Nothing to do",
                                 "No unprocessed .gen files found.", parent=self)
@@ -1314,7 +1357,7 @@ class ArenaLinkApp(tk.Tk):
 
     def _process_files(self, gen_path, html_path, review_mode=False):
         try:
-            times      = parse_gen(gen_path)
+            times      = parse_html_lanes(html_path)
             places     = calculate_places(times)
             asterisked = parse_html_asterisks(html_path) if html_path else set()
             empty_lanes = {i + 1 for i, t in enumerate(times) if t == ""}

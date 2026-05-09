@@ -1,5 +1,5 @@
 @echo off
-title ArenaLink v1.0.3
+title ArenaLink v1.0.5
 
 :: ── Check Python is available ─────────────────────────────────────────────────
 python --version >nul 2>&1
